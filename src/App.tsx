@@ -1,80 +1,133 @@
 import { useState } from 'react';
 import styles from './App.module.css';
-import poweredImage from './assets/powered.png';
-import leftArrowImage from './assets/leftarrow.png';
-import { GridItem } from './components/GridItem';
-
-import { levels , calculateImc, Level, } from './helpers/imc';
-
+import { GridCard } from './components/GridCard';
+import { ResultCard } from './components/ResultCard';
+import { levels, calculateImc, Level } from './helpers/imc';
 
 const App = () => {
-  const [heightField, setHeightField] = useState<number>(0);
-  const [weightField, setWeightField] = useState<number>(0);
-  const [toShow, setToShow] = useState <Level | null>(null);
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [result, setResult] = useState<Level | null>(null);
+  const [imcValue, setImcValue] = useState<number | null>(null);
 
-  const handleCalculateButton = () => {
-    if(heightField && weightField) {
-      setToShow(calculateImc(heightField, weightField));
-    } else {
-      alert("Digite todos os campos.");
+  const h = parseFloat(height);
+  const w = parseFloat(weight);
+
+  const previewImc = h > 0 && w > 0
+    ? (w / (h * h)).toFixed(1)
+    : null;
+
+  const handleCalculate = () => {
+    if (!h || !w || h <= 0 || w <= 0) {
+      alert('Por favor, preencha altura e peso corretamente.');
+      return;
     }
-  }
+    setImcValue(w / (h * h));
+    setResult(calculateImc(h, w));
+  };
 
-  const handleBackButton = () => {
-    setToShow(null);
-    setHeightField(0);
-    setWeightField(0);
-  }
-  
+  const handleReset = () => {
+    setResult(null);
+    setImcValue(null);
+    setHeight('');
+    setWeight('');
+  };
+
   return (
-    <div className={styles.main}>
-      <header>
-         <div className={styles.headerContainer}>
-            <img src={poweredImage} alt="Logo" width={150} />
-         </div>
-      </header>
-      <div className={styles.container}>
-        <div className={styles.leftSide}>
-          <h1>Calcule o seu IMC.</h1>
-          <p>IMC é a sigla para Indice de Massa Corpórea, parâmentro adotado pela Organização Mundial da Saúde para calcular o peso ideal de cada pessoa.</p>
-
-          <input 
-          type="number" 
-          placeholder="Digite a sua altura. Ex: 1.5 (em metros)" 
-          value={heightField > 0 ? heightField : ''}
-          onChange={e => setHeightField(parseFloat(e.target.value))}
-          disabled={toShow ? true : false}
-          />
-          <input 
-            type="number" 
-            placeholder="Digite o seu peso. Ex: 75.3 (em kg)" 
-            value={weightField > 0 ? weightField : ''}
-            onChange={e => setWeightField(parseFloat(e.target.value))}
-            disabled={toShow ? true : false}
-          />
-
-          <button onClick={handleCalculateButton} disabled={toShow ? true : false}>Calcular</button>
+    <div className={styles.app}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+        <div className={styles.logo}>
+          imc<span className={styles.logoAccent}>.</span>calc
         </div>
-        <div className={styles.rightSide}>
-          {!toShow &&
+        <div className={styles.badge}>OMS · Índice de Massa Corpórea</div>
+        </div>
+      </header>
+
+      <main className={styles.main}>
+        {/* ── Left panel ── */}
+        <div className={styles.left}>
+          <div className={styles.eyebrow}>Calculadora</div>
+          <h1 className={styles.title}>Calcule seu IMC</h1>
+          <p className={styles.subtitle}>
+            O Índice de Massa Corpórea é o parâmetro adotado pela Organização
+            Mundial da Saúde para calcular o peso ideal de cada pessoa.
+          </p>
+
+          <div className={styles.field}>
+            <label htmlFor="height">Altura (metros)</label>
+            <input
+              id="height"
+              type="number"
+              placeholder="Ex: 1.75"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              disabled={!!result}
+              step="0.01"
+              min="0"
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="weight">Peso (kg)</label>
+            <input
+              id="weight"
+              type="number"
+              placeholder="Ex: 75.3"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              disabled={!!result}
+              step="0.1"
+              min="0"
+            />
+          </div>
+
+          <div className={styles.imcChip}>
+            {result ? (
+              <>
+                <span>IMC calculado</span>
+                <span className={styles.imcChipVal}>{imcValue?.toFixed(2)}</span>
+              </>
+            ) : previewImc ? (
+              <>
+                <span>IMC estimado</span>
+                <span className={styles.imcChipVal}>{previewImc}</span>
+              </>
+            ) : (
+              <span className={styles.imcChipEmpty}>Preencha os campos acima</span>
+            )}
+          </div>
+
+          {!result ? (
+            <button className={styles.btnPrimary} onClick={handleCalculate}>
+              Calcular IMC
+            </button>
+          ) : (
+            <button className={styles.btnGhost} onClick={handleReset}>
+              ← Calcular novamente
+            </button>
+          )}
+        </div>
+
+        {/* ── Right panel ── */}
+        <div className={styles.right}>
+          {!result ? (
             <div className={styles.grid}>
-              {levels.map((item, key) => (
-                <GridItem key={key} item={item}/>
+              {levels.map((item, i) => (
+                <GridCard key={i} item={item} />
               ))}
             </div>
-          }
-          {toShow &&
-            <div className={styles.rightBig}>
-               <div className={styles.rightArrow} onClick={handleBackButton}>
-                  <img src={leftArrowImage} alt="" width={25}    />        
-                    </div>
-               <GridItem item={toShow}/>
-            </div>
-          }
+          ) : (
+            <ResultCard level={result} imc={imcValue!} />
+          )}
         </div>
-      </div>
+      </main>
+
+      <footer className={styles.footer}>
+        © 2025 imc.calc — Baseado nos critérios da OMS
+      </footer>
     </div>
   );
-}
+};
 
 export default App;
